@@ -3,7 +3,7 @@
 
 int main()
 {
-	int n = 5, m = 10;
+	int n = 15, m = 10;
 	Laberinto laberinto1(n, m);
 	laberinto1.showMatrix();
 	laberinto1.transp();

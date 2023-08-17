@@ -5,6 +5,7 @@
 #include <iostream>
 #include <ctime>
 #include <cmath>
+#include <set>
 #include <tuple>
 #define loop(a,b,c) for(int a=b;a<c;++a)
 #define ui unsigned int
@@ -16,10 +17,11 @@
 #define tdii std::tuple<double,int,int>
 #define vtdii std::vector<tdii>
 #define pqtdii std::priority_queue<tdii, vtdii, std::greater<tdii>>
+#define spii std::set<std::pair<int,int>>
 
 // B = bloque o muro
 // WB = bloque blanco
-enum { WB = 0, B = 1, taken = 2, no_taken = 3 };
+enum { WB = 0, B = 1, taken = 2, no_taken = 3, Comida = 4, Fantasma = 5, fruta = 6 };
 
 class Laberinto
 {
@@ -28,25 +30,42 @@ public:
 	ui n, m;
 	int start_x;
 	int end_x;
+	int n_fantasma;
+	int n_fruta;
 	vvi matrix;
 	// datos grafo
 	vvi vertex;		// todos los vertices forma x, y
 	vvpdi adjacent;	// lista adyacencia -> peso, vertice llegada
 	pqtdii PQ;		// cola de prioridad para Prim
-	ui n_vertex;
+	ui n_vertex;	// cantidad de vertices
 	vi vertexTaken;	// vertices tomados para Prim
 	ui edges_taken;	// limite de aristas n-1
+	spii puntosComida;	// set con puntos de cada comida
+	spii puntosFruta;	// set con puntos de cada fruta
+	spii puntosFantasma;	// set con puntos de cada fantasma
+
 
 	Laberinto(ui _n, ui _m);
 	void showMatrix();
 	void showVertex();
 	void showDistances();
 	vvi getLaberinto() { return matrix; }
+	spii getPuntosFantasma() { return puntosFantasma; }
+	spii getPuntosComida() { return puntosComida; }
+	spii getPuntosFruta() { return puntosFruta; }
+	int getStartx() { return start_x; }
+	int getEndx() { return end_x; }
+	int getNFantasmas() { return n_fantasma; }
+
 	void transp();				// transpuesta de la matriz
 	void fixed();
 
+
 private:
 	void setBC();				// asigna Bloques candidatos
+	void setComida();			// asigna comida
+	void setFruta();				// asgina fruta
+	void setFantasma();			// asigna posicion de los fantasmas
 	void setDistances();		// distancias entre todos los vertices
 	void process(int u);		// proceso para Prim
 	void Prim();				// algoritmo Prim
@@ -57,6 +76,8 @@ Laberinto::Laberinto(ui _n, ui _m)
 {
 	n = _n;
 	m = _m;
+	n_fantasma = 4;
+	n_fruta = 4;
 	matrix.assign(n, vi(m, B)); // B todos muros
 	// entrada y salida aleatoria a la derecha e izquierda
 	srand(time(nullptr));
@@ -86,6 +107,10 @@ Laberinto::Laberinto(ui _n, ui _m)
 	adjacent.assign(n_vertex, vpdi(0));
 	setDistances();
 	Prim();
+	// asigna comida
+	setComida();
+	setFantasma();
+	setFruta();
 }
 
 // asigna Bloques candidatos
@@ -104,6 +129,75 @@ void Laberinto::setBC()
 			// std::cout << num << '\n';
 			if (num <= prob)
 				matrix[i][j] = WB;	// añade una zona descubierta
+		}
+	}
+}
+
+// asigna comida
+void Laberinto::setComida()	
+{
+	int count = 0;
+	loop(i, 1, n - 1)
+	{
+		loop(j, 1, m - 1)
+		{
+			if (count % 13 == 0 && matrix[i][j] == WB)
+			{
+				matrix[i][j] = Comida;
+				count++;
+				puntosComida.insert({i,j});
+			}
+			else if (matrix[i][j] == WB)
+				count++;
+		}
+	}
+}
+
+// asigna fruta
+void Laberinto::setFruta()
+{
+	int count = 0;
+	int frutaCount = 0;
+	loop(i, 1, n - 1)
+	{
+		loop(j, 1, m - 1)
+		{
+			if (count % 13 == 0 && matrix[i][j] == WB && frutaCount < n_fruta)
+			{
+				matrix[i][j] = fruta;
+				frutaCount++;
+				puntosFruta.insert({ i,j });
+			}
+			else
+				count++;
+		}
+	}
+}
+
+// asigna posicion de los fantasmas
+void Laberinto::setFantasma()
+{
+	float prob = 0.05;
+	int fantasmasCount = 0;
+	int min = 0;
+	int max = 100;
+	srand(time(nullptr));
+	loop(i, 1, n - 1)
+	{
+		loop(j, 1, m - 1)
+		{
+			if (matrix[i][j] == WB && fantasmasCount < n_fantasma)
+			{
+				// num = rand() % (max - min) + min;
+				double num = (rand() % (max - min) + min) / double(max);
+				// std::cout << num << '\n';
+				if (num <= prob)
+				{
+					matrix[i][j] = Fantasma;	// añade una zona descubierta
+					fantasmasCount++;
+					puntosFantasma.insert({ i,j });
+				}
+			}
 		}
 	}
 }
